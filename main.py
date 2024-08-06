@@ -1,9 +1,9 @@
-import pygame
-from screeninfo import get_monitors
 from pytmx.util_pygame import load_pygame
 import ctypes
+from additions import *
+import pygame
 import sys
-import time
+import menus
 
 pygame.init()
 
@@ -12,8 +12,8 @@ display_height = 32 * 20
 
 
 pygame.display.set_caption("Gardex")
-#screen = pygame.display.set_mode((display_width, display_height))
 icon = pygame.image.load('assets/icons/game_icon.png')
+background_img = pygame.image.load("assets/backgrounds/background.png")
 pygame.display.set_icon(icon)
 clock = pygame.time.Clock()
 screen_info = pygame.display.Info()
@@ -22,57 +22,31 @@ running = True
 world_objects = []
 render_objects = []
 ui_objects = []
-gameState = 0 #Відповідає за вибір сцени, потипу меню і тд
+gameState = 0 #Відповідає за вибір сцени, потипу юі чи гра
+past_gameState = 1
 
 window_mode = 1
 
-# Colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRAY = (200, 200, 200)
-DARK_GRAY = (150, 150, 150)
+scene = menus.SettingsMenu(screen_info.current_w, screen_info.current_h)
 
+def quit():
+    pygame.quit()
+    sys.exit()
 
-#Fonts
-basic_font = pygame.font.Font(None, 36)
+def newGame():
+    pass
 
-class Button:
-    def __init__(self, x, y, width, height, text, color, hover_color, click_color):
-        self.rect = pygame.Rect(x, y, width, height)
-        self.text = text
-        self.color = color
-        self.hover_color = hover_color
-        self.click_color = click_color
-        self.hovered = False
-        self.clicked = False
+def LoadGame():
+    pass
 
-    def draw(self, surface):
-        if(self.clicked):
-            print("Clicked")
-            color = self.click_color
-        elif(self.hovered):
-            print("hovered")
-            color = self.hover_color
-        else:
-            color = self.color
-        pygame.draw.rect(surface, color, self.rect, border_radius=10)
-        pygame.draw.rect(surface, BLACK, self.rect, 2, border_radius=10)
+def openSettingsMenu():
+    global scene
+    scene = menus.SettingsMenu(screen_info.current_w, screen_info.current_h)
+    scene.visible = True
+    print("opened")
 
-        text_surface = basic_font.render(self.text, True, BLACK)
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        surface.blit(text_surface, text_rect)
-
-    def check_hover(self, pos):
-        self.hovered = self.rect.collidepoint(pos)
-
-    def handle_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.hovered:
-            print(f"{self.text} button clicked!")
-            self.clicked = True
-            if self.text == "Quit":
-                pygame.quit()
-                sys.exit()
-
+def BackToMenu():
+    pass
 def window_init():
     global screen
     if(window_mode == 0):
@@ -95,8 +69,6 @@ def load_world(level_path):
 
 window_init()
 
-
-
 while running:
     global screen
     clock.tick(60)
@@ -106,36 +78,32 @@ while running:
     for e in event:
         if e.type == pygame.QUIT:
             running = False
-
+        if not (scene == None):
+            scene.handle_event(e)
         for uiob in ui_objects:
             uiob.handle_event(e)
-
+    screen_info = pygame.display.Info()
+    # Load background image
+    background = pygame.transform.scale(background_img, (screen_info.current_w, screen_info.current_h))
+    screen.blit(background, (0, 0))
     if gameState == 0: #головне меню
-        screen_info = pygame.display.Info()
-        # Load background image
-        background = pygame.image.load("assets/backgrounds/background.png")
-        background = pygame.transform.scale(background, (screen_info.current_w, screen_info.current_h))
-        ui_objects = [
-            Button(300, 200, 200, 50, "New", WHITE, GRAY, DARK_GRAY),
-            Button(300, 275, 200, 50, "Load", WHITE, GRAY, DARK_GRAY),
-            Button(300, 350, 200, 50, "Settings", WHITE, GRAY, DARK_GRAY),
-            Button(300, 425, 200, 50, "Quit", WHITE, GRAY, DARK_GRAY)
-        ] #Need to Fix Dynamic rendering
-        screen.blit(background, (0, 0))
+        if not (scene == None):
+            scene.draw(screen)
+        if not(past_gameState == gameState):
+            past_gameState = gameState
+            ui_objects = [
+                Button(300, 200, 200, 50, "New", WHITE, GRAY, DARK_GRAY, newGame),
+                Button(300, 275, 200, 50, "Load", WHITE, GRAY, DARK_GRAY, LoadGame),
+                Button(300, 350, 200, 50, "Settings", WHITE, GRAY, DARK_GRAY, openSettingsMenu),
+                Button(300, 425, 200, 50, "Quit", WHITE, GRAY, DARK_GRAY, quit)
+            ] #Need to Fix Dynamic rendering
+
         for uiob in ui_objects:
             uiob.check_hover(pygame.mouse.get_pos())
             uiob.draw(screen)
         #for ele in render_objects:
         #    ele.draw(screen)
-    elif gameState == 1: #налаштування
-        pass
-    elif gameState == 2: #вибір світу
-        pass
-    elif gameState == 3: #створення світу
-        pass
-    elif gameState == 4: #завантаження світу
-        pass
-    elif gameState == 5: #гра
+    elif gameState == 1: #гра
         screen.fill((0, 0, 0))
         for obj in render_objects:
             obj.update(keys)
